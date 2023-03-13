@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ChatGpt测试</title>
+    <script type="text/javascript">
+        let sse;
+        let conversationId = '';
+        let parentMessageId = '';
+        let isLoading = false;
+        function onStart() {
+            if (isLoading) return;
+            isLoading = true;
+            const message = document.getElementById('input').value || '你好';
+            document.getElementById('input').value = '';
+            const resultEle = document.getElementById('result');
+            const resultText = resultEle.innerText;
+            resultEle.innerText = resultText + (resultText ? '\n\n' : '') + `[您]：\n${message}\n\n[ChatGpt]：思考中...`;
+            sse = new EventSource('/api/conversation?message=' + message + '&conversationId=' + conversationId + '&parentMessageId=' + parentMessageId);
+            sse.onopen = function (event) {
+                console.warn('open event', event);
+            };
+            sse.addEventListener('message', function (event) {
+                if (event.data === '[DONE]') {
+                    onClose();
+                    return;
+                }
+                const data = JSON.parse(event.data);
+                const resultText = resultEle.innerText;
+                const match = resultText.match(/^([\s\S]*)\[ChatGpt\]：[\s\S]*?$/);
+                resultEle.innerText = match[1] + `[ChatGpt]：${data.text}`;
+                parentMessageId = data.id;
+                conversationId = data.conversationId;
+            }, false);
+            sse.addEventListener('error', function (event) {
+                console.error('error event', event);
+                onClose()
+            }, false);
+        }
+        function onClose() {
+            isLoading = false;
+            sse && sse.close();
+        }
+        function onEnter(event) {
+            if (event.keyCode === 13) {
+                onStart();
+            }
+        }
+    </script>
+</head>
+<body>
+    <h2>ChatGpt测试(青春版)</h2>
+    <h3>聊天内容</h3>
+    <div id="result"></div>
+    <input id="input" onkeydown="onEnter(event)"/>
+    <button id="send" onclick="onStart()">发送</button>
+    <button onclick="onClose()">提前中止</button>
+</body>
+
+</html>
