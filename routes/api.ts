@@ -56,6 +56,9 @@ async function handleConversation(req, res) {
       istCrawler = true;
       chatGptInvoker = chatGptCrawler;
     }
+    if (!chatGptInvoker) {
+      throw new Error('请配置您的apiKey');
+    }
 
     // 2. 设置响应头
     const headers = {
