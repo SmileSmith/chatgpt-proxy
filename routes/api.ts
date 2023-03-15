@@ -101,9 +101,8 @@ async function handleConversation(req, res) {
     res.end();
   } catch (error: unknown) {
     const err = error as ChatGPTError;
-    logger.error('onError:', err.statusCode);
-    logger.error('onError:', err.statusCode, err.statusText);
-    if (err.statusCode === 429) {
+    logger.error(`onError: ${err.statusCode}\n${err.statusText}\n---`);
+    if (+err.statusCode === 429) {
       res.write(
         `data: ${JSON.stringify({
           id: parentMessageId,
