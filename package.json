@@ -10,7 +10,7 @@
     "pm2": "pm2 start ./dist/bin/www"
   },
   "dependencies": {
-    "@chatgpt-proxy/chatgpt": "^3.5.4",
+    "@chatgpt-proxy/chatgpt": "^3.5.5",
     "await-to-js": "^3.0.0",
     "body-parser": "^1.20.1",
     "chatgpt": "^5.0.10",

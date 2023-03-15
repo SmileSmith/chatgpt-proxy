@@ -11,11 +11,13 @@ logger.level = process.env.LOG_LEVEL || 'debug';
 
 const chatGptApiMap = new Map<string, ChatGPTAPI>();
 let chatGptCrawler: ChatGPTAPIBrowser | null = null;
+// eslint-disable-next-line no-undef
+let chatGptCrawlerChangeModelTimer: NodeJS.Timeout | null = null;
+let chatGptCrawlerModel = process.env.OPENAI_ACCOUNT_MODEL;
 
 if (process.env.OPENAI_ACCOUNT_EMAIL) {
   chatGptCrawler = new ChatGPTAPIBrowser({
     debug: process.env.LOG_LEVEL === 'debug',
-    model: process.env.OPENAI_ACCOUNT_MODEL,
     isProAccount: !!process.env.OPENAI_ACCOUNT_PLUS,
     email: process.env.OPENAI_ACCOUNT_EMAIL,
     password: process.env.OPENAI_ACCOUNT_PASS,
@@ -71,6 +73,7 @@ async function handleConversation(req, res) {
 
     // 3. 发送请求
     const response = await chatGptInvoker?.sendMessage(message, {
+      model: istCrawler ? chatGptCrawlerModel : '',
       conversationId,
       parentMessageId,
       onProgress(processResponse) {
@@ -108,6 +111,24 @@ async function handleConversation(req, res) {
           text: '当前使用人数较多🔥，命中频限，请稍后再试~',
         })}\n\n`
       );
+      if (/model_cap_exceeded/.test(err.statusText)) {
+        // 命中模型限额
+        chatGptCrawlerModel = '';
+        // 限额重置时间：官方文档是4小时，优先按接口返回的时间计算
+        const clearsInSeconds = err.statusText.match(/clears_in: (\d+)/)?.[1];
+        if (clearsInSeconds) {
+          clearTimeout(chatGptCrawlerChangeModelTimer);
+          chatGptCrawlerChangeModelTimer = setTimeout(() => {
+            chatGptCrawlerModel = process.env.OPENAI_ACCOUNT_MODEL;
+            clearTimeout(chatGptCrawlerChangeModelTimer);
+          }, +clearsInSeconds * 1000);
+        } else if (!chatGptCrawlerChangeModelTimer) {
+          chatGptCrawlerChangeModelTimer = setTimeout(() => {
+            chatGptCrawlerModel = process.env.OPENAI_ACCOUNT_MODEL;
+            clearTimeout(chatGptCrawlerChangeModelTimer);
+          }, 4 * 60 * 60 * 1000);
+        }
+      }
     } else {
       res.write(
         `data: ${JSON.stringify({
