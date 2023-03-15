@@ -1,7 +1,7 @@
 import express from 'express';
 import Logger from 'log4js';
 import { ChatGPTAPI, ChatGPTError } from 'chatgpt';
-import { ChatGPTAPIBrowser } from 'chatgpt-v3';
+import { ChatGPTAPIBrowser } from '@chatgpt-proxy/chatgpt';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -15,6 +15,7 @@ let chatGptCrawler: ChatGPTAPIBrowser | null = null;
 if (process.env.OPENAI_ACCOUNT_EMAIL) {
   chatGptCrawler = new ChatGPTAPIBrowser({
     debug: process.env.LOG_LEVEL === 'debug',
+    model: 'gpt-4',
     isProAccount: !!process.env.OPENAI_ACCOUNT_PLUS,
     email: process.env.OPENAI_ACCOUNT_EMAIL,
     password: process.env.OPENAI_ACCOUNT_PASS,
