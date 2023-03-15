@@ -15,7 +15,7 @@ let chatGptCrawler: ChatGPTAPIBrowser | null = null;
 if (process.env.OPENAI_ACCOUNT_EMAIL) {
   chatGptCrawler = new ChatGPTAPIBrowser({
     debug: process.env.LOG_LEVEL === 'debug',
-    model: 'gpt-4',
+    model: process.env.OPENAI_ACCOUNT_MODEL,
     isProAccount: !!process.env.OPENAI_ACCOUNT_PLUS,
     email: process.env.OPENAI_ACCOUNT_EMAIL,
     password: process.env.OPENAI_ACCOUNT_PASS,
@@ -91,7 +91,8 @@ async function handleConversation(req, res) {
         }
       },
     });
-    logger.info('chatGptApi success', response);
+    logger.info('[message]', message);
+    logger.info('[response]', response);
     // 5. 返回全部数据
     res.write('data: [DONE]\n\n');
     res.end();
