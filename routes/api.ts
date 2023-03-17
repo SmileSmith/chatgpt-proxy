@@ -107,7 +107,7 @@ async function handleConversation(req, res) {
     if (apiKey) logger.info('[apiKey]', apiKey);
     if (chatGptCrawlerChangeTS) {
       if (chatGptCrawlerChangeTS < Date.now()) {
-        chatGptCrawlerModel = '';
+        chatGptCrawlerModel = process.env.OPENAI_ACCOUNT_MODEL;
         chatGptCrawlerChangeTS = 0;
       } else {
         logger.info('[modelChangeTS]', new Date(chatGptCrawlerChangeTS).toLocaleString());
