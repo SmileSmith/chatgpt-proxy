@@ -74,11 +74,15 @@ async function handleConversation(req, res) {
     };
     res.writeHead(200, headers);
 
+    const abortController = new AbortController();
+    req.on('close', () => abortController.abort());
+
     // 3. 发送请求
     const response = await chatGptInvoker?.sendMessage(message, {
       model: istCrawler ? chatGptCrawlerModel : '',
       conversationId,
       parentMessageId,
+      abortSignal: abortController.signal,
       onProgress(processResponse) {
         logger.debug(processResponse);
 
