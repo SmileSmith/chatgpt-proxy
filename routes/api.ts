@@ -14,7 +14,7 @@ const chatGptApiModel = process.env.OPENAI_API_MODEL || 'gpt-3.5-turbo';
 
 let chatGptCrawler: ChatGPTAPIBrowser | null = null;
 // eslint-disable-next-line no-undef
-let chatGptCrawlerChangeModelTimer: NodeJS.Timeout | null = null;
+let chatGptCrawlerChangeTS = 0;
 let chatGptCrawlerModel = process.env.OPENAI_ACCOUNT_MODEL;
 const DEFAULT_CRAWLER_MODEL = process.env.OPENAI_ACCOUNT_PLUS ? 'text-davinci-002-render-paid' : 'text-davinci-002-render-sha';
 
@@ -100,7 +100,14 @@ async function handleConversation(req, res) {
 
     logger.info('[model]', istCrawler ? chatGptCrawlerModel || DEFAULT_CRAWLER_MODEL : chatGptApiModel);
     if (apiKey) logger.info('[apiKey]', apiKey);
-    if (chatGptCrawlerChangeModelTimer) logger.info('[modelChangeTimer]', chatGptCrawlerChangeModelTimer);
+    if (chatGptCrawlerChangeTS) {
+      if (chatGptCrawlerChangeTS < Date.now()) {
+        chatGptCrawlerModel = '';
+        chatGptCrawlerChangeTS = 0;
+      } else {
+        logger.info('[modelChangeTS]', new Date(chatGptCrawlerChangeTS).toLocaleString());
+      }
+    }
 
     logger.debug('[message]', message);
     logger.debug('[response]', response);
@@ -124,16 +131,9 @@ async function handleConversation(req, res) {
         // 限额重置时间：官方文档是4小时，优先按接口返回的时间计算
         const clearsInSeconds = err.statusText.match(/clears_in: (\d+)/)?.[1];
         if (clearsInSeconds) {
-          clearTimeout(chatGptCrawlerChangeModelTimer);
-          chatGptCrawlerChangeModelTimer = setTimeout(() => {
-            chatGptCrawlerModel = process.env.OPENAI_ACCOUNT_MODEL;
-            clearTimeout(chatGptCrawlerChangeModelTimer);
-          }, +clearsInSeconds * 1000);
-        } else if (!chatGptCrawlerChangeModelTimer) {
-          chatGptCrawlerChangeModelTimer = setTimeout(() => {
-            chatGptCrawlerModel = process.env.OPENAI_ACCOUNT_MODEL;
-            clearTimeout(chatGptCrawlerChangeModelTimer);
-          }, 4 * 60 * 60 * 1000);
+          chatGptCrawlerChangeTS = Date.now() + (+clearsInSeconds * 1000);
+        } else if (!chatGptCrawlerChangeTS) {
+          chatGptCrawlerChangeTS = Date.now() + 4 * 60 * 60 * 1000;
         }
       }
     } else {
