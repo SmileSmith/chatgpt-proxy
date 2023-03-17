@@ -120,7 +120,7 @@ async function handleConversation(req, res) {
     res.end();
   } catch (error: unknown) {
     const err = error as ChatGPTError;
-    logger.warn(`onError: ${err.statusCode}\n${err.statusText}\n---`);
+    logger.warn(`onError: ${err.statusCode}`);
     if (+err.statusCode === 429) {
       res.write(
         `data: ${JSON.stringify({
@@ -151,7 +151,7 @@ async function handleConversation(req, res) {
       );
     }
     setTimeout(() => {
-      logger.error('onError send SSE End');
+      logger.warn('onError send SSE End');
       res.write('data: [DONE]\n\n');
       res.end();
     }, 500);
