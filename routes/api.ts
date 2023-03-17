@@ -120,7 +120,7 @@ async function handleConversation(req, res) {
     res.end();
   } catch (error: unknown) {
     const err = error as ChatGPTError;
-    logger.error(`onError: ${err.statusCode}\n${err.statusText}\n---`);
+    logger.warn(`onError: ${err.statusCode}\n${err.statusText}\n---`);
     if (+err.statusCode === 429) {
       res.write(
         `data: ${JSON.stringify({
@@ -134,6 +134,7 @@ async function handleConversation(req, res) {
         chatGptCrawlerModel = '';
         // 限额重置时间：官方文档是4小时，优先按接口返回的时间计算
         const clearsInSeconds = err.statusText.match(/clears_in: (\d+)/)?.[1];
+        logger.error(`model_cap_exceeded clears_in:${clearsInSeconds} | chatGptCrawlerChangeTS: ${chatGptCrawlerChangeTS}`);
         if (clearsInSeconds) {
           chatGptCrawlerChangeTS = Date.now() + (+clearsInSeconds * 1000);
         } else if (!chatGptCrawlerChangeTS) {
