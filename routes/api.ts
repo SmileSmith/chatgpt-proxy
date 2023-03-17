@@ -133,7 +133,7 @@ async function handleConversation(req, res) {
         // 命中模型限额
         chatGptCrawlerModel = '';
         // 限额重置时间：官方文档是4小时，优先按接口返回的时间计算
-        const clearsInSeconds = err.statusText.match(/clears_in:[\s\S]*?(\d+)/)?.[1];
+        const clearsInSeconds = err.statusText.match(/clears_in[\s\S]*?(\d+)/)?.[1];
         logger.error(`model_cap_exceeded clears_in:${clearsInSeconds} | chatGptCrawlerChangeTS: ${chatGptCrawlerChangeTS}`);
         if (clearsInSeconds) {
           chatGptCrawlerChangeTS = Date.now() + (+clearsInSeconds * 1000);
