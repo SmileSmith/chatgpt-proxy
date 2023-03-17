@@ -82,7 +82,8 @@ async function handleConversation(req, res) {
       model: istCrawler ? chatGptCrawlerModel : '',
       conversationId,
       parentMessageId,
-      abortSignal: abortController.signal,
+      // API模式通过TCP方式直接处理close，不需要额外传abortSignal
+      abortSignal: istCrawler ? abortController.signal : null,
       onProgress(processResponse) {
         logger.debug(processResponse);
 
