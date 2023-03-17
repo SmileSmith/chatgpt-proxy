@@ -10,10 +10,13 @@ const logger = Logger.getLogger('chatgpt');
 logger.level = process.env.LOG_LEVEL || 'debug';
 
 const chatGptApiMap = new Map<string, ChatGPTAPI>();
+const chatGptApiModel = process.env.OPENAI_API_MODEL || 'gpt-3.5-turbo';
+
 let chatGptCrawler: ChatGPTAPIBrowser | null = null;
 // eslint-disable-next-line no-undef
 let chatGptCrawlerChangeModelTimer: NodeJS.Timeout | null = null;
 let chatGptCrawlerModel = process.env.OPENAI_ACCOUNT_MODEL;
+const DEFAULT_CRAWLER_MODEL = process.env.OPENAI_ACCOUNT_PLUS ? 'text-davinci-002-render-paid' : 'text-davinci-002-render-sha';
 
 if (process.env.OPENAI_ACCOUNT_EMAIL) {
   chatGptCrawler = new ChatGPTAPIBrowser({
@@ -49,7 +52,7 @@ async function handleConversation(req, res) {
         debug: process.env.LOG_LEVEL === 'debug',
         apiKey,
         completionParams: {
-          model: process.env.OPENAI_API_MODEL || 'gpt-3.5-turbo',
+          model: chatGptApiModel,
         },
       });
       chatGptApiMap.set(apiKey, chatGptInvoker);
@@ -94,8 +97,13 @@ async function handleConversation(req, res) {
         }
       },
     });
-    logger.info('[message]', message);
-    logger.info('[response]', response);
+
+    logger.info('[model]', istCrawler ? chatGptCrawlerModel || DEFAULT_CRAWLER_MODEL : chatGptApiModel);
+    if (apiKey) logger.info('[apiKey]', apiKey);
+    if (chatGptCrawlerChangeModelTimer) logger.info('[modelChangeTimer]', chatGptCrawlerChangeModelTimer);
+
+    logger.debug('[message]', message);
+    logger.debug('[response]', response);
     // 5. 返回全部数据
     res.write('data: [DONE]\n\n');
     res.end();
