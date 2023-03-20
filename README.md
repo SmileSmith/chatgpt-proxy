@@ -16,7 +16,7 @@
 
 [ChatGPT Plus 订阅指南](https://yofine.zhubai.love/posts/2247819421823352832)
 
-除了通过本项目部署proxy服务之外，你也可以用railway直接在谷歌云上部署web服务，墙内也可以访问（只需要apiKey和一个github账号）
+除了通过本项目部署proxy服务之外，你也可以用railway直接在谷歌云上部署web服务，墙内也可以访问（只需要apiKey和一个github账号，railway支持github账号一键部署，每月有免费的5美元服务器使用额度，个人使用是足够的）
 
 [部署chatgpt的web服务](https://github.com/SmileSmith/chatgpt-web)
 
