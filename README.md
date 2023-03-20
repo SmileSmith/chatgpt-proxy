@@ -7,6 +7,9 @@
 ### 参考文档
 
 [账号注册](https://cloud.tencent.com/developer/article/2190154)
+
+[](https://github.com/SmileSmith/chatgpt-web)
+
 [获取openai的ApiKey](https://platform.openai.com/account/api-keys)
 
 ## 环境
