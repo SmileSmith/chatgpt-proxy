@@ -9,12 +9,15 @@
 [账号注册](https://cloud.tencent.com/developer/article/2190154)
 
 账号注册完成后，访问下面地址，就可以生成apiKey
+
 [获取openai的ApiKey](https://platform.openai.com/account/api-keys)
 
 如果需要体验gpt4，需付费升级为openai的plus会员(虚拟信用卡和某宝都可以)
+
 [ChatGPT Plus 订阅指南](https://yofine.zhubai.love/posts/2247819421823352832)
 
 除了通过本项目部署proxy服务之外，你也可以用railway直接在谷歌云上部署web服务，墙内也可以访问（只需要apiKey和一个github账号）
+
 [部署chatgpt的web服务](https://github.com/SmileSmith/chatgpt-web)
 
 ## 环境
