@@ -1,8 +1,9 @@
-import express from 'express';
+import express, { Request, Response } from 'express';
 import Logger from 'log4js';
-import { ChatGPTAPI, ChatGPTError } from 'chatgpt';
-import { ChatGPTAPIBrowser } from '@chatgpt-proxy/chatgpt';
+import { ChatGPTAPI, ChatGPTError, ChatMessage } from 'chatgpt';
+import { ChatGPTAPIBrowser, ChatResponse } from '@chatgpt-proxy/chatgpt';
 import * as dotenv from 'dotenv';
+import { getLogsCollection, LogEntry } from '../dbs/mongo';
 
 dotenv.config();
 
@@ -12,6 +13,7 @@ logger.level = process.env.LOG_LEVEL || 'debug';
 const chatGptApiMap = new Map<string, ChatGPTAPI>();
 const chatGptApiModel = process.env.OPENAI_API_MODEL || 'gpt-3.5-turbo';
 
+let useCrawlerDefault = !process.env.OPENAI_API_KEY;
 let chatGptCrawler: ChatGPTAPIBrowser | null = null;
 // eslint-disable-next-line no-undef
 let chatGptCrawlerChangeTS = 0;
@@ -28,7 +30,7 @@ if (process.env.OPENAI_ACCOUNT_EMAIL) {
   chatGptCrawler.initSession();
 }
 
-async function handleConversation(req, res) {
+async function handleConversation(req: Request, res: Response) {
   const params = { ...req.body, ...req.query } as {
     message: string;
     conversationId: string;
@@ -39,27 +41,30 @@ async function handleConversation(req, res) {
     message,
     conversationId,
     parentMessageId,
-    apiKey = process.env.OPENAI_API_KEY,
   } = params;
+  let { apiKey } = params;
 
   try {
     // 1. 确保chatGptApi存在
-    let istCrawler = false;
-    let chatGptInvoker: ChatGPTAPIBrowser | ChatGPTAPI =
-      chatGptApiMap.get(apiKey);
-    if (!chatGptInvoker && apiKey) {
-      chatGptInvoker = new ChatGPTAPI({
-        debug: process.env.LOG_LEVEL === 'debug',
-        apiKey,
-        completionParams: {
-          model: chatGptApiModel,
-        },
-      });
-      chatGptApiMap.set(apiKey, chatGptInvoker);
-      logger.info('chatGptApi init', apiKey);
+    let isCrawler = false;
+    let chatGptInvoker: ChatGPTAPIBrowser | ChatGPTAPI
+    apiKey = apiKey || !useCrawlerDefault && process.env.OPENAI_API_KEY;
+    if (apiKey) {
+      chatGptInvoker = chatGptApiMap.get(apiKey);
+      if (!chatGptInvoker) {
+        chatGptInvoker = new ChatGPTAPI({
+          debug: process.env.LOG_LEVEL === 'debug',
+          apiKey,
+          completionParams: {
+            model: chatGptApiModel,
+          },
+        });
+        chatGptApiMap.set(apiKey, chatGptInvoker);
+        logger.info('chatGptApi init', apiKey);
+      }
     }
     if (!apiKey && chatGptCrawler) {
-      istCrawler = true;
+      isCrawler = true;
       chatGptInvoker = chatGptCrawler;
     }
     if (!chatGptInvoker) {
@@ -79,15 +84,15 @@ async function handleConversation(req, res) {
 
     // 3. 发送请求
     const response = await chatGptInvoker?.sendMessage(message, {
-      model: istCrawler ? chatGptCrawlerModel : '',
+      model: isCrawler ? chatGptCrawlerModel : '',
       conversationId,
       parentMessageId,
       // API模式通过TCP方式直接处理close，不需要额外传abortSignal
-      abortSignal: istCrawler ? abortController.signal : null,
+      abortSignal: isCrawler ? abortController.signal : null,
       onProgress(processResponse) {
         logger.debug(processResponse);
 
-        if (istCrawler && processResponse.response) {
+        if (isCrawler && processResponse.response) {
           const data = processResponse as any;
           data.id = data.messageId;
           data.text = data.response;
@@ -103,8 +108,8 @@ async function handleConversation(req, res) {
       },
     });
 
-    logger.info('[model]', istCrawler ? chatGptCrawlerModel || DEFAULT_CRAWLER_MODEL : chatGptApiModel);
-    if (apiKey) logger.info('[apiKey]', apiKey);
+    logger.debug('[model]', isCrawler ? chatGptCrawlerModel || DEFAULT_CRAWLER_MODEL : chatGptApiModel);
+    if (apiKey) logger.debug('[apiKey]', apiKey);
     if (chatGptCrawlerChangeTS) {
       if (chatGptCrawlerChangeTS < Date.now()) {
         chatGptCrawlerModel = process.env.OPENAI_ACCOUNT_MODEL;
@@ -116,6 +121,21 @@ async function handleConversation(req, res) {
 
     logger.debug('[message]', message);
     logger.debug('[response]', response);
+
+    // 4. 记录日志
+    const logsCollection = await getLogsCollection();
+    const logEntry: LogEntry = {
+      messageId: (response as ChatMessage).id || (response as ChatResponse).messageId,
+      parentMessageId,
+      conversationId,
+      message,
+      response: (response as ChatMessage).text || (response as ChatResponse).response,
+      model: isCrawler ? chatGptCrawlerModel || DEFAULT_CRAWLER_MODEL : chatGptApiModel,
+      apiKey,
+      timestamp: new Date(),
+    };
+    await logsCollection.insertOne(logEntry);
+
     // 5. 返回全部数据
     res.write('data: [DONE]\n\n');
     res.end();
@@ -162,5 +182,23 @@ async function handleConversation(req, res) {
 const router = express.Router();
 router.get('/conversation', handleConversation);
 router.post('/conversation', handleConversation);
+
+// 暴露一个接口，用于切换模式
+router.get('/model', (req: Request, res: Response) => {
+  useCrawlerDefault = !useCrawlerDefault
+  res.send({ useCrawlerDefault });
+});
+
+// 暴露一个接口，用于获取日志
+router.get('/logs', async (req: Request, res: Response) => {
+  try {
+    const logsCollection = await getLogsCollection();
+    const logs = await logsCollection.find().toArray();
+    res.json(logs);
+  } catch (error) {
+    logger.error('Error fetching logs from MongoDB:', error);
+    res.status(500).json({ error: 'Error fetching logs from MongoDB' });
+  }
+});
 
 export default router;
