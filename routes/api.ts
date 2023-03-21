@@ -47,8 +47,8 @@ async function handleConversation(req: Request, res: Response) {
   try {
     // 1. 确保chatGptApi存在
     let isCrawler = false;
-    let chatGptInvoker: ChatGPTAPIBrowser | ChatGPTAPI
-    apiKey = apiKey || !useCrawlerDefault && process.env.OPENAI_API_KEY;
+    let chatGptInvoker: ChatGPTAPIBrowser | ChatGPTAPI;
+    apiKey = apiKey || (!useCrawlerDefault && process.env.OPENAI_API_KEY);
     if (apiKey) {
       chatGptInvoker = chatGptApiMap.get(apiKey);
       if (!chatGptInvoker) {
@@ -185,7 +185,7 @@ router.post('/conversation', handleConversation);
 
 // 暴露一个接口，用于切换模式
 router.get('/model', (req: Request, res: Response) => {
-  useCrawlerDefault = !useCrawlerDefault
+  useCrawlerDefault = !useCrawlerDefault;
   res.send({ useCrawlerDefault });
 });
 
