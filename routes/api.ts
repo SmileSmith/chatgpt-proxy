@@ -4,6 +4,9 @@ import { ChatGPTAPI, ChatGPTError, ChatMessage } from 'chatgpt';
 import { ChatGPTAPIBrowser, ChatResponse } from '@chatgpt-proxy/chatgpt';
 import * as dotenv from 'dotenv';
 import { getLogsCollection, LogEntry } from '../dbs/mongo';
+import { auth } from '../middlewares/auth';
+import { handleApiDone, handleApiError } from '../controllers/error';
+import { formatReturn } from '../controllers/send';
 
 dotenv.config();
 
@@ -20,7 +23,7 @@ let chatGptCrawlerChangeTS = 0;
 let chatGptCrawlerModel = process.env.OPENAI_ACCOUNT_MODEL;
 const DEFAULT_CRAWLER_MODEL = process.env.OPENAI_ACCOUNT_PLUS ? 'text-davinci-002-render-paid' : 'text-davinci-002-render-sha';
 
-if (process.env.OPENAI_ACCOUNT_EMAIL) {
+if (process.env.OPENAI_ACCOUNT_EMAIL && process.env.OPENAI_ACCOUNT_PASS) {
   chatGptCrawler = new ChatGPTAPIBrowser({
     debug: process.env.LOG_LEVEL === 'debug',
     isProAccount: !!process.env.OPENAI_ACCOUNT_PLUS,
@@ -47,8 +50,8 @@ async function handleConversation(req: Request, res: Response) {
   try {
     // 1. 确保chatGptApi存在
     let isCrawler = false;
-    let chatGptInvoker: ChatGPTAPIBrowser | ChatGPTAPI;
-    apiKey = apiKey || (!useCrawlerDefault && process.env.OPENAI_API_KEY);
+    let chatGptInvoker: ChatGPTAPIBrowser | ChatGPTAPI | undefined;
+    apiKey = apiKey || ((!useCrawlerDefault && process.env.OPENAI_API_KEY) || '');
     if (apiKey) {
       chatGptInvoker = chatGptApiMap.get(apiKey);
       if (!chatGptInvoker) {
@@ -88,7 +91,7 @@ async function handleConversation(req: Request, res: Response) {
       conversationId,
       parentMessageId,
       // API模式通过TCP方式直接处理close，不需要额外传abortSignal
-      abortSignal: isCrawler ? abortController.signal : null,
+      abortSignal: isCrawler ? abortController.signal : undefined,
       onProgress(processResponse) {
         logger.debug(processResponse);
 
@@ -97,13 +100,13 @@ async function handleConversation(req: Request, res: Response) {
           data.id = data.messageId;
           data.text = data.response;
           // 4. 逐步返回数据
-          res.write(`data: ${JSON.stringify(data)}\n\n`);
+          res.write(formatReturn(data));
           return;
         }
 
         if (processResponse.text) {
           // 4. 逐步返回数据
-          res.write(`data: ${JSON.stringify(processResponse)}\n\n`);
+          res.write(formatReturn(processResponse));
         }
       },
     });
@@ -136,46 +139,23 @@ async function handleConversation(req: Request, res: Response) {
     };
     await logsCollection.insertOne(logEntry);
 
-    // 5. 返回全部数据
-    res.write('data: [DONE]\n\n');
-    res.end();
+    // 5. 结束
+    handleApiDone(res);
   } catch (error: unknown) {
     const err = error as ChatGPTError;
-    logger.warn(`onError: ${err.statusCode}`);
-    if (+err.statusCode === 429) {
-      res.write(
-        `data: ${JSON.stringify({
-          id: parentMessageId,
-          conversationId,
-          text: '当前使用人数较多🔥，命中频限，请稍后再试~',
-        })}\n\n`
-      );
-      if (/model_cap_exceeded/.test(err.statusText)) {
-        // 命中模型限额
-        chatGptCrawlerModel = '';
-        // 限额重置时间：官方文档是4小时，优先按接口返回的时间计算
-        const clearsInSeconds = err.statusText.match(/clears_in[\s\S]*?(\d+)/)?.[1];
-        logger.error(`model_cap_exceeded clears_in:${clearsInSeconds} | chatGptCrawlerChangeTS: ${chatGptCrawlerChangeTS}`);
-        if (clearsInSeconds) {
-          chatGptCrawlerChangeTS = Date.now() + (+clearsInSeconds * 1000);
-        } else if (!chatGptCrawlerChangeTS) {
-          chatGptCrawlerChangeTS = Date.now() + 4 * 60 * 60 * 1000;
-        }
+    handleApiError(err, res, { conversationId, parentMessageId });
+    if (err.statusCode && +err.statusCode === 429 && err.statusText && /model_cap_exceeded/.test(err.statusText)) {
+      // 命中模型限额
+      chatGptCrawlerModel = '';
+      // 限额重置时间：官方文档是4小时，优先按接口返回的时间计算
+      const clearsInSeconds = err.statusText.match(/clears_in[\s\S]*?(\d+)/)?.[1];
+      logger.warn(`model_cap_exceeded clears_in:${clearsInSeconds} | chatGptCrawlerChangeTS: ${chatGptCrawlerChangeTS}`);
+      if (clearsInSeconds) {
+        chatGptCrawlerChangeTS = Date.now() + (+clearsInSeconds * 1000);
+      } else if (!chatGptCrawlerChangeTS) {
+        chatGptCrawlerChangeTS = Date.now() + 4 * 60 * 60 * 1000;
       }
-    } else {
-      res.write(
-        `data: ${JSON.stringify({
-          id: parentMessageId,
-          conversationId,
-          text: err.statusText || err.message || '未知异常，请稍后再试~',
-        })}\n\n`
-      );
     }
-    setTimeout(() => {
-      logger.warn('onError send SSE End');
-      res.write('data: [DONE]\n\n');
-      res.end();
-    }, 500);
   }
 }
 
@@ -184,13 +164,13 @@ router.get('/conversation', handleConversation);
 router.post('/conversation', handleConversation);
 
 // 暴露一个接口，用于切换模式
-router.get('/model', (req: Request, res: Response) => {
+router.get('/model', auth, (req: Request, res: Response) => {
   useCrawlerDefault = !useCrawlerDefault;
   res.send({ useCrawlerDefault });
 });
 
 // 暴露一个接口，用于获取日志
-router.get('/logs', async (req: Request, res: Response) => {
+router.get('/logs', auth, async (req: Request, res: Response) => {
   try {
     const logsCollection = await getLogsCollection();
     const logs = await logsCollection.find().toArray();
