@@ -21,7 +21,8 @@
     "express-http-proxy": "^1.6.3",
     "log4js": "^6.7.1",
     "mongodb": "^5.1.0",
-    "morgan": "~1.9.1"
+    "morgan": "~1.9.1",
+    "typescript": "^5.0.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.14",
