@@ -31,11 +31,18 @@ if (process.env.OPENAI_ACCOUNT_EMAIL && process.env.OPENAI_ACCOUNT_PASS) {
 
 async function handleConversation(req: Request, res: Response) {
   const params = { ...req.body, ...req.query } as {
+    // 用户发送的消息
     message: string;
+    // 对话id
     conversationId: string;
+    // 父消息id
     parentMessageId: string;
-    model: string;
+    // 当前消息使用的模型
+    model?: string;
+    // 当前消息使用的apikey
     apiKey?: string;
+    // 不使用流式返回（等待所有数据返回后，返回最终回答，较慢，仅建议API模式使用）
+    noStreaming?: 1;
   };
   const {
     message,
@@ -70,6 +77,8 @@ async function handleConversation(req: Request, res: Response) {
     if (!chatGptInvoker) {
       throw new Error('请配置您的apiKey');
     }
+
+    const stream = +params.noStreaming !== 1;
     const model = isCrawler ? getChatGptCrawlerModel() : apiModel || DEFAULT_API_MODEL;
 
     // 2. 设置响应头
@@ -96,6 +105,8 @@ async function handleConversation(req: Request, res: Response) {
       onProgress(processResponse) {
         logger.debug(processResponse);
 
+        if (!stream) return;
+
         if (isCrawler && processResponse.response) {
           const data = processResponse as any;
           data.id = data.messageId;
@@ -117,11 +128,7 @@ async function handleConversation(req: Request, res: Response) {
     logger.debug('[message]', message);
     logger.debug('[response]', response);
 
-    // 4. 其他处理
-    // 4.1 爬虫模式重新判断模型
-    handleCrawlerResume();
-    // 4.2 记录日志
-    logChatGPTResponse({
+    const chatGPTResponse = {
       messageId: (response as ChatMessage).id || (response as ChatResponse).messageId,
       parentMessageId,
       conversationId,
@@ -129,10 +136,21 @@ async function handleConversation(req: Request, res: Response) {
       response: (response as ChatMessage).text || (response as ChatResponse).response,
       model,
       apiKey,
-    });
+    };
+
+    // 4. 其他处理
+    // 4.1 爬虫模式重新判断模型
+    handleCrawlerResume();
+    // 4.2 记录日志
+    logChatGPTResponse(chatGPTResponse);
 
     // 5. 结束
-    handleApiDone(res);
+    if (!stream) {
+      handleApiDone(res);
+      return;
+    }
+    res.write(chatGPTResponse);
+    res.end();
   } catch (error: unknown) {
     const err = error as ChatGPTError;
     handleApiError(err, res, { conversationId, parentMessageId });
