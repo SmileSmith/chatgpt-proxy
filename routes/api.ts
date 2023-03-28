@@ -145,11 +145,11 @@ async function handleConversation(req: Request, res: Response) {
     logChatGPTResponse(chatGPTResponse);
 
     // 5. 结束
-    if (!stream) {
+    if (stream) {
       handleApiDone(res);
       return;
     }
-    res.write(chatGPTResponse);
+    res.write(JSON.stringify(chatGPTResponse));
     res.end();
   } catch (error: unknown) {
     const err = error as ChatGPTError;
