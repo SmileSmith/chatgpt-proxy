@@ -16,20 +16,24 @@ logger.level = process.env.LOG_LEVEL || 'debug';
  * @param {NextFunction} next
  * @return {*}  {void}
  */
-export function auth(req: Request, res: Response, next: NextFunction): void {
+export function auth(req: Request, res: Response, next: NextFunction): boolean {
   const authApiKey = process.env.OPENAI_API_KEY;
-  if (!authApiKey) return next();
+  if (!authApiKey) {
+    next();
+    return true;
+  }
   try {
     const { apiKey } = { ...req.body, ...req.query } as { apiKey?: string };
     if (!apiKey || apiKey.trim() !== authApiKey.trim()) {
       throw new Error(PROXY_ERROR.NoAuthApiKey);
     }
-    return next();
+    next();
+    return true;
   } catch (error) {
     res.send(formatReturn({
       id: 'Unauthorized',
       text: error.message ?? 'Please authenticate.',
     }));
+    return false;
   }
-  return next();
 }
