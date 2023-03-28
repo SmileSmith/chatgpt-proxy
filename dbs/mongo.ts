@@ -21,5 +21,3 @@ export async function getLogsCollection() {
   const collection = db.collection('logs');
   return collection;
 }
-
-export default client;
