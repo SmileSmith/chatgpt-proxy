@@ -5,6 +5,7 @@ import logger from 'morgan';
 import * as dotenv from 'dotenv';
 import indexRouter from './routes/index';
 import apiRouter from './routes/api';
+import sysRouter from './routes/sys';
 
 dotenv.config();
 
@@ -20,5 +21,6 @@ app.use(bodyParser.urlencoded({ extended: true })); // for parsing application/x
 
 app.use('/', indexRouter);
 app.use('/api', apiRouter);
+app.use('/sys', sysRouter);
 
 export default app;
