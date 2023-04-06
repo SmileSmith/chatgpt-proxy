@@ -29,14 +29,8 @@ app.use(
       {
         protocol: 'http',
         host: 'localhost',
-        path: '/admin/health/ex1',
-        port: '3000',
-      },
-      {
-        protocol: 'http',
-        host: 'localhost',
-        path: '/admin/health/ex2',
-        port: '3000',
+        path: '/api/conversation',
+        port: '8000',
       },
     ],
   })
