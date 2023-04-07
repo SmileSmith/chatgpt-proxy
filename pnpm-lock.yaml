@@ -1,7 +1,7 @@
 lockfileVersion: 5.4
 
 specifiers:
-  '@chatgpt-proxy/chatgpt': ^3.5.9
+  '@chatgpt-proxy/chatgpt': ^3.6.0
   '@types/express': ^4.17.14
   '@types/node': ^18.11.12
   '@typescript-eslint/eslint-plugin': ^5.46.0
@@ -26,7 +26,7 @@ specifiers:
   typescript: ^5.0.2
 
 dependencies:
-  '@chatgpt-proxy/chatgpt': 3.5.9
+  '@chatgpt-proxy/chatgpt': 3.6.0
   await-to-js: 3.0.0
   body-parser: 1.20.2
   chatgpt: 5.1.2
@@ -75,8 +75,8 @@ packages:
       js-tokens: 4.0.0
     dev: false
 
-  /@chatgpt-proxy/chatgpt/3.5.9:
-    resolution: {integrity: sha512-7Ba3otPLFnDBJanlN2C8/3ptmcSFKwCRt3v17ghzmTvYBwpqbIWvcYCyODCpIwZVHmaFEa5pd0r249g9O0ZpQQ==}
+  /@chatgpt-proxy/chatgpt/3.6.0:
+    resolution: {integrity: sha512-m4SpFnf5WQfChSUZ9t7Nc6+NSJE5ewkZ8Lwkb6L5nBuiJsZBiP3xi7DBJoFldn6HGrwLOnWJFN5Y2HEnS0AcTA==}
     engines: {node: '>=18'}
     peerDependencies:
       puppeteer: '*'
