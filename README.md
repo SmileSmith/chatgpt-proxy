@@ -4,6 +4,12 @@
 
 本项目基于 nodejs 版本 [chatgpt-api](https://github.com/transitive-bullshit/chatgpt-api) ，使用 express 框架，实现了一个简单的代理服务，支持代理 chatgpt 的官方 api 版本和爬虫版本。
 
+### 特性
+
+1. 多种接入方式：支持官方 api 版本和爬虫版本，爬虫版本可以显著降低调用成本
+2. 稳定调用：爬虫版本基于chatgpt-api@v3版本，持续优化@chatgpt-proxy/chatgpt
+3. SSE优化：优化SSE体验，异常能返回错误数据给到客户端
+
 ### 参考文档
 
 [账号注册](https://cloud.tencent.com/developer/article/2190154)
@@ -60,12 +66,11 @@ npm run server
 
 ### 1. windows的代理服务器
 
-建议去tx云、ali云等云服务商申请一个海外的windows服务器，然后在服务器上部署代理服务，也可以自己搭梯子
+建议去tx云、ali云等云服务商申请一个海外的windows服务器，然后在服务器上部署代理服务。非海外的云服务器，需要搭梯子，否则无法访问openai的api接口。
 
-已tx云为例，首尔地区，2核2GB的云服务器，每年费用在700左右
+以tx云为例，首尔地区，2核2GB的云服务器，每年费用在700左右
 
 <img width="647" alt="image" src="https://user-images.githubusercontent.com/17798955/224979451-b108809a-2258-4d5e-bfe2-57d31c0ea555.png">
-
 
 ### 2. 没有打字效果
 
