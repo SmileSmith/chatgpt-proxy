@@ -10,6 +10,7 @@ logger.level = process.env.LOG_LEVEL || 'debug';
 export const PROXY_ERROR = {
   NoAuthApiKey: '无访问权限',
   Limit: '当前使用人数较多🔥，命中频限，请稍后再试~',
+  NotFoundConversation: '会话丢失🤷🏻‍♀️，请关闭chatgpt后重新打开，开始新的会话~',
   Unknown: '未知异常，请稍后再试~',
 };
 
@@ -46,6 +47,14 @@ export function handleApiError(
         id: params.parentMessageId,
         conversationId: params.conversationId,
         text: PROXY_ERROR.Limit,
+      })
+    );
+  } if (err.statusCode && +err.statusCode === 404) {
+    res.write(
+      formatReturn({
+        id: params.parentMessageId,
+        conversationId: params.conversationId,
+        text: PROXY_ERROR.NotFoundConversation,
       })
     );
   } else {
