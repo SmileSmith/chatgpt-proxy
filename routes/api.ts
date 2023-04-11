@@ -49,8 +49,9 @@ async function handleConversation(req: Request, res: Response) {
     conversationId,
     parentMessageId,
     model: apiModel,
-    apiKey = getDefaultOpenApiKey(),
   } = params;
+  let { apiKey } = params;
+  apiKey = apiKey || getDefaultOpenApiKey();
 
   try {
     // 1. 确保chatGptApi存在
