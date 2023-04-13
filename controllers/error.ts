@@ -11,6 +11,7 @@ export const PROXY_ERROR = {
   NoAuthApiKey: '无访问权限',
   Limit: '当前使用人数较多🔥，命中频限，请稍后再试~',
   NotFoundConversation: '会话丢失🤷🏻‍♀️，请关闭chatgpt后重新打开，开始新的会话~',
+  Unauthorized: 'apiKey在OPENAI验证失效，请检查apiKey及账户余额后重试~',
   Unknown: '未知异常，请稍后再试~',
 };
 
@@ -50,6 +51,14 @@ export function handleApiError(
       })
     );
   } if (err.statusCode && +err.statusCode === 404) {
+    res.write(
+      formatReturn({
+        id: params.parentMessageId,
+        conversationId: params.conversationId,
+        text: PROXY_ERROR.NotFoundConversation,
+      })
+    );
+  } if (err.statusCode && +err.statusCode === 401) {
     res.write(
       formatReturn({
         id: params.parentMessageId,

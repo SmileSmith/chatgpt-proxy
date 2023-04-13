@@ -54,6 +54,8 @@ async function handleConversation(req: Request, res: Response) {
   apiKey = apiKey || getDefaultOpenApiKey();
 
   try {
+    if (!message) throw new Error('请传入message参数');
+
     // 1. 确保chatGptApi存在
     let isCrawler = false;
     let chatGptInvoker: ChatGPTAPIBrowser | ChatGPTAPI | undefined;
