@@ -3,7 +3,7 @@ import Logger from 'log4js';
 import { ChatGPTAPI, ChatGPTError, ChatMessage } from 'chatgpt';
 import { ChatGPTAPIBrowser, ChatResponse } from '@chatgpt-proxy/chatgpt';
 import * as dotenv from 'dotenv';
-import { handleApiDone, handleApiError } from '../controllers/error';
+import { handleApiDone, handleApiError, handleUpdate } from '../controllers/error';
 import { formatReturn } from '../controllers/send';
 import { getDefaultOpenApiKey } from './sys';
 import { getChatGptCrawlerModel, handleCrawlerError, handleCrawlerResume } from '../controllers/cawler';
@@ -13,6 +13,23 @@ dotenv.config();
 
 const logger = Logger.getLogger('chatgpt');
 logger.level = process.env.LOG_LEVEL || 'debug';
+
+export interface ConversationParams {
+  // 用户发送的消息
+  message: string;
+  // 对话id
+  conversationId: string;
+  // 父消息id
+  parentMessageId: string;
+  // 当前消息使用的模型
+  model?: string;
+  // 当前消息使用的apikey
+  apiKey?: string;
+  // 不使用流式返回（等待所有数据返回后，返回最终回答，较慢，仅建议API模式使用）
+  noStreaming?: 1;
+  // 客户端版本号
+  clientVersion?: string;
+}
 
 const chatGptApiMap = new Map<string, ChatGPTAPI>();
 const DEFAULT_API_MODEL = process.env.OPENAI_API_MODEL || 'gpt-3.5-turbo';
@@ -30,20 +47,7 @@ if (process.env.OPENAI_ACCOUNT_EMAIL && process.env.OPENAI_ACCOUNT_PASS) {
 }
 
 async function handleConversation(req: Request, res: Response) {
-  const params = { ...req.body, ...req.query } as {
-    // 用户发送的消息
-    message: string;
-    // 对话id
-    conversationId: string;
-    // 父消息id
-    parentMessageId: string;
-    // 当前消息使用的模型
-    model?: string;
-    // 当前消息使用的apikey
-    apiKey?: string;
-    // 不使用流式返回（等待所有数据返回后，返回最终回答，较慢，仅建议API模式使用）
-    noStreaming?: 1;
-  };
+  const params = { ...req.body, ...req.query } as ConversationParams;
   const {
     message,
     conversationId,
@@ -91,6 +95,9 @@ async function handleConversation(req: Request, res: Response) {
       'Cache-Control': 'no-cache',
     };
     res.writeHead(200, headers);
+
+    // 客户端版本校验
+    if (!handleUpdate(params, res)) throw new Error('请传入message参数');
 
     const abortController = new AbortController();
     req.on('close', () => abortController.abort());
