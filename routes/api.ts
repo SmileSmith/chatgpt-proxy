@@ -97,7 +97,7 @@ async function handleConversation(req: Request, res: Response) {
     res.writeHead(200, headers);
 
     // 客户端版本校验
-    if (!handleUpdate(params, res)) throw new Error('请传入message参数');
+    if (!handleUpdate(params, res)) return;
 
     const abortController = new AbortController();
     req.on('close', () => abortController.abort());
