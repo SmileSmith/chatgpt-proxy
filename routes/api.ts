@@ -39,7 +39,6 @@ let chatGptCrawler: ChatGPTAPIBrowser | null = null;
 if (process.env.OPENAI_ACCOUNT_EMAIL && process.env.OPENAI_ACCOUNT_PASS) {
   chatGptCrawler = new ChatGPTAPIBrowser({
     debug: process.env.LOG_LEVEL === 'debug',
-    isProAccount: !!process.env.OPENAI_ACCOUNT_PLUS,
     email: process.env.OPENAI_ACCOUNT_EMAIL,
     password: process.env.OPENAI_ACCOUNT_PASS,
   });
@@ -86,7 +85,7 @@ async function handleConversation(req: Request, res: Response) {
     }
 
     const stream = +params.noStreaming !== 1;
-    const model = isCrawler ? getChatGptCrawlerModel() : apiModel || DEFAULT_API_MODEL;
+    const model = isCrawler ? getChatGptCrawlerModel(apiModel) : apiModel || DEFAULT_API_MODEL;
 
     // 2. 设置响应头
     const headers = {
