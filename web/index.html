@@ -16,7 +16,7 @@
             const resultEle = document.getElementById('result');
             const resultText = resultEle.innerText;
             resultEle.innerText = resultText + (resultText ? '\n\n' : '') + `[您]：\n${message}\n\n[ChatGpt]：思考中...`;
-            sse = new EventSource('/api/conversation?message=' + message + '&conversationId=' + conversationId + '&parentMessageId=' + parentMessageId);
+            sse = new EventSource('/api/conversation?message=' + message + '&conversationId=' + conversationId + '&parentMessageId=' + parentMessageId  + '&clientVersion=1.1');
             sse.onopen = function (event) {
                 console.warn('open event', event);
             };
