@@ -58,3 +58,5 @@ router.post('/chat-process', async (req, res) => {
     res.end();
   }
 });
+
+export default router;
