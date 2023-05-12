@@ -56,7 +56,7 @@ router.post('/verify', async (req, res) => {
 router.post('/chat-process', async (req, res) => {
   const params = { ...req.body, ...req.query } as any;
   const { prompt: message, options = {} } = params;
-  const { parentMessageId, conversationId } = options;
+  const { parentMessageId, conversationId, model } = options;
 
   try {
     if (!message) throw new Error('请传入prompt参数');
@@ -74,7 +74,12 @@ router.post('/chat-process', async (req, res) => {
     await handleChatGPT(
       req,
       res,
-      { message, parentMessageId, conversationId },
+      {
+        message,
+        parentMessageId,
+        conversationId,
+        model,
+      },
       (processResponse: ChatMessage) => {
         logger.debug(processResponse);
 
