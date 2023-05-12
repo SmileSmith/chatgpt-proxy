@@ -6,6 +6,7 @@ import logger from 'morgan';
 import * as dotenv from 'dotenv';
 import indexRouter from './routes/index';
 import apiRouter from './routes/api';
+import chatgptWebRouter from './routes/chatgpt-web';
 import sysRouter from './routes/sys';
 
 dotenv.config();
@@ -39,5 +40,6 @@ app.use(
 app.use('/', indexRouter);
 app.use('/api', apiRouter);
 app.use('/sys', sysRouter);
+app.use('/chatgpt-web', chatgptWebRouter);
 
 export default app;
