@@ -10,12 +10,47 @@ const router = express.Router();
 const logger = Logger.getLogger('chatgpt');
 logger.level = process.env.LOG_LEVEL || 'debug';
 
+const MODEL = 'ChatGPTUnofficialProxyAPI';
+
 router.post('/session', async (req, res) => {
   res.send({
     status: 'Success',
     message: '',
-    data: { auth: true, model: 'ChatGPTUnofficialProxyAPI' },
+    data: { auth: true, model: MODEL },
   });
+});
+
+router.post('/config', async (req, res) => {
+  try {
+    res.send({
+      type: 'Success',
+      data: {
+        apiModel: MODEL,
+        reverseProxy: '-',
+        timeoutMs: '-',
+        socksProxy: '-',
+        httpsProxy: '-',
+        usage: '？？？',
+      },
+    });
+  } catch (error) {
+    res.send(error);
+  }
+});
+
+router.post('/verify', async (req, res) => {
+  try {
+    const { token } = req.body as { token: string };
+    if (!token) throw new Error('Secret key is empty');
+
+    if (process.env.CHATGPT_WEB_AUTH_SECRET_KEY !== token) {
+      throw new Error('密钥无效 | Secret key is invalid');
+    }
+
+    res.send({ status: 'Success', message: 'Verify successfully', data: null });
+  } catch (error) {
+    res.send({ status: 'Fail', message: error.message, data: null });
+  }
 });
 
 router.post('/chat-process', async (req, res) => {
