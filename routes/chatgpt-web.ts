@@ -63,11 +63,8 @@ router.post('/chat-process', async (req, res) => {
 
     // 设置响应头
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader(
-      'Access-Control-Allow-Headers',
-      'authorization, Content-Type'
-    );
     res.setHeader('Access-Control-Allow-Methods', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'authorization, Content-Type');
     res.setHeader('Content-type', 'application/octet-stream');
 
     let isFirstChunk = true;
